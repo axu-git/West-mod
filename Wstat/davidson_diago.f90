@@ -53,6 +53,10 @@ SUBROUTINE davidson_diago_gamma ( )
   USE wstat_tools,          ONLY : diagox,serial_diagox,build_hr,symm_hr_distr,redistribute_vr_distr,&
                                    & update_with_vr_distr,refresh_with_vr_distr 
   USE types_coulomb,        ONLY : pot3D
+  USE fft_base,              ONLY : dfftp,dffts
+  USE fft_at_gamma,          ONLY : single_fwfft_gamma,single_invfft_gamma,double_fwfft_gamma,double_invfft_gamma
+  USE fft_interfaces,        ONLY : fwfft, invfft  
+  USE cubefile,             ONLY: write_wfc_cube_r
   !
   IMPLICIT NONE
   !
@@ -71,6 +75,7 @@ SUBROUTINE davidson_diago_gamma ( )
     ! do-loop counters
     ! counter on the bands
   INTEGER :: ierr,mloc,mstart,mend
+  INTEGER :: ipert
   INTEGER,ALLOCATABLE :: ishift(:)
   REAL(DP), ALLOCATABLE :: ew(:)
   REAL(DP), ALLOCATABLE :: hr_distr(:,:), vr_distr(:,:)
@@ -81,6 +86,9 @@ SUBROUTINE davidson_diago_gamma ( )
   CHARACTER(LEN=8) :: iter_label
   REAL(DP) :: pccg_res_tr2
   INTEGER :: dfpt_dim, diago_dim
+  !
+  COMPLEX(DP) :: r_ep(dffts%nr1x*dffts%nr2x*dffts%nr3x) ! converged eigenpotentials in real space
+  REAL(DP) :: sm_ep(dffts%nr1x*dffts%nr2x*dffts%nr3x) ! squared modulus of r_ep
   !
   REAL(DP), EXTERNAL :: GET_CLOCK
   !
@@ -372,6 +380,24 @@ SUBROUTINE davidson_diago_gamma ( )
            CALL stop_clock( 'chidiago:last' )
            !
            CALL refresh_with_vr_distr( dvg, nvec, nbase, nvecx, vr_distr )
+           !
+           ipert = 1
+           ALLOCATE( aux_g(npwqx) ); aux_g = 0._DP
+           ALLOCATE( aux_r(dffts%nnr) ); aux_r = 0._DP
+           !
+           DO CONCURRENT (ig=1:npwq)
+              aux_g(ig) = dvg(ig, ipert)
+           ENDDO
+           !
+           IF (gamma_only) THEN
+              CALL single_invfft_gamma(dffts, npwq, npwqx, aux_g, aux_r, TRIM(fftdriver))
+              CALL gather_grid(dffts, aux_r, r_ep)
+              DO CONCURRENT (ir = 1:dffts%nr1x*dffts%nr2x*dffts%nr3x)
+                 sm_ep(ir) = REAL(CONJG(r_ep(ir)) * r_ep(ir), KIND=DP)
+              ENDDO
+              CALL write_wfc_cube_r (dffts, 99, TRIM("sm_ep")//".cube", sm_ep)
+           ENDIF
+           !
            !
            CALL pdep_db_write( )
            CALL wstat_restart_clear()
