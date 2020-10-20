@@ -21,4 +21,4 @@ lw_wtq_t10_t11_v_000 - same as West 4.1.0
 lw_wtq_t10_t11_v_001 - run after lw_wtq_t10_t11_v_000 - reads output of lw_wtq_t10_t11_v_000, just does apply_operator once, and the dfpt_module prints out delta psi
 lw_wtq_t10_t11_v_002 - does the try_10/try_10 - correct version where it prints out final delta psi
 lw_wtq_t10_t11_v_003 - 
-lw_wtq_t10_t11_v_004 - coopy of v_000, except print out dvg using cubefile if davidson_diago
+lw_wtq_t10_t11_v_004 - coopy of v_000, except print out dvg using cubefile in davidson_diago (after all iterations have converged)
