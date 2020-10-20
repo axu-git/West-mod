@@ -75,7 +75,7 @@ SUBROUTINE davidson_diago_gamma ( )
     ! do-loop counters
     ! counter on the bands
   INTEGER :: ierr,mloc,mstart,mend
-  INTEGER :: ipert
+  INTEGER :: ipert, ig, ir
   INTEGER,ALLOCATABLE :: ishift(:)
   REAL(DP), ALLOCATABLE :: ew(:)
   REAL(DP), ALLOCATABLE :: hr_distr(:,:), vr_distr(:,:)
@@ -89,6 +89,7 @@ SUBROUTINE davidson_diago_gamma ( )
   !
   COMPLEX(DP) :: r_ep(dffts%nr1x*dffts%nr2x*dffts%nr3x) ! converged eigenpotentials in real space
   REAL(DP) :: sm_ep(dffts%nr1x*dffts%nr2x*dffts%nr3x) ! squared modulus of r_ep
+  COMPLEX(DP), ALLOCATABLE :: aux_r(:),aux_g(:)
   !
   REAL(DP), EXTERNAL :: GET_CLOCK
   !
@@ -97,6 +98,7 @@ SUBROUTINE davidson_diago_gamma ( )
   l_is_wstat_converged = .FALSE.
   nvec = n_pdep_eigen
   nvecx = n_pdep_basis
+  r_ep=(0.0_DP,0.0_DP)
   !
   CALL start_clock( 'chidiago' )
   time_spent(1)=get_clock( 'chidiago' )
@@ -389,14 +391,12 @@ SUBROUTINE davidson_diago_gamma ( )
               aux_g(ig) = dvg(ig, ipert)
            ENDDO
            !
-           IF (gamma_only) THEN
-              CALL single_invfft_gamma(dffts, npwq, npwqx, aux_g, aux_r, TRIM(fftdriver))
-              CALL gather_grid(dffts, aux_r, r_ep)
-              DO CONCURRENT (ir = 1:dffts%nr1x*dffts%nr2x*dffts%nr3x)
-                 sm_ep(ir) = REAL(CONJG(r_ep(ir)) * r_ep(ir), KIND=DP)
-              ENDDO
-              CALL write_wfc_cube_r (dffts, 99, TRIM("sm_ep")//".cube", sm_ep)
-           ENDIF
+           CALL single_invfft_gamma(dffts, npwq, npwqx, aux_g, aux_r, TRIM(fftdriver))
+           CALL gather_grid(dffts, aux_r, r_ep)
+           DO CONCURRENT (ir = 1:dffts%nr1x*dffts%nr2x*dffts%nr3x)
+              sm_ep(ir) = REAL(CONJG(r_ep(ir)) * r_ep(ir), KIND=DP)
+           ENDDO
+           CALL write_wfc_cube_r (dffts, 99, TRIM("sm_ep")//".cube", sm_ep)
            !
            !
            CALL pdep_db_write( )
