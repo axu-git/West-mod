@@ -57,6 +57,7 @@ SUBROUTINE davidson_diago_gamma ( )
   USE fft_at_gamma,          ONLY : single_fwfft_gamma,single_invfft_gamma,double_fwfft_gamma,double_invfft_gamma
   USE fft_interfaces,        ONLY : fwfft, invfft  
   USE cubefile,             ONLY: write_wfc_cube_r
+  USE scatter_mod,           ONLY : gather_grid
   !
   IMPLICIT NONE
   !
